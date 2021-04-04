@@ -1,76 +1,106 @@
-import numpy as np
 import pygame
 import sys
-import tensorflow as tf
 import time
 
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
-# Start pygame
+WIDTH = 800
+
+# Start pygame and create initial window
 pygame.init()
-size = width, height = 600, 400
-screen = pygame.display.set_mode(size)
+size = width, height = WIDTH, WIDTH
+SCREEN = pygame.display.set_mode(size)
 
+ROWS, COLS = 20, 20
 
-ROWS, COLS = 28, 28
+OFFSET = 80
+CELL_SIZE = 40
 
-OFFSET = 20
-CELL_SIZE = 10
+class Node:
+    def __init__(self, row, col, cell_size):
+        self.col = col
+        self.row = row
+        self.x = OFFSET + row * cell_size
+        self.y = OFFSET + col * cell_size
+        self.colour = WHITE
+        self.neighbors = []
 
-handwriting = [[0] * COLS for _ in range(ROWS)]
-classification = None
+    def draw(self, screen):
+        rect = pygame.Rect(self.x, self.y, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(scren, self.color, rect)
+        return rect
 
-while True:
-
-    # Check if game quit
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-
-    screen.fill(BLACK)
-
-    # Check for mouse press
-    # click, _, _ = pygame.mouse.get_pressed()
-    # if click == 1:
-    #     mouse = pygame.mouse.get_pos()
-    # else:
-    #     mouse = None
-
-    # Draw each grid cell
-    cells = []
+# generate board elements for board of specified size
+def createBoard():
+    # list of lists to hold each row full of nodes
+    nodes = []
     for i in range(ROWS):
         row = []
         for j in range(COLS):
-            rect = pygame.Rect(
-                OFFSET + j * CELL_SIZE,
-                OFFSET + i * CELL_SIZE,
-                CELL_SIZE, CELL_SIZE
-            )
+            node = Node(row=i, col = j, cell_size = CELL_SIZE)
+            row.append(node)
+        nodes.append(row)
+    return nodes
 
-            # If cell has been written on, darken cell
-            # if handwriting[i][j]:
-            #     channel = 255 - (handwriting[i][j] * 255)
-            #     pygame.draw.rect(screen, (channel, channel, channel), rect)
-
-            # Draw blank cell
-            #else:
-            # this draws the cell rectangles
-            pygame.draw.rect(screen, WHITE, rect)
-            # this draws the gaps between cell rectangles
+def drawBoard(boardToDraw, screen):
+    for row in boardToDraw:
+        for node in row:
+            rect = node.draw()
+            # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
 
-            # If writing on this cell, fill in current cell and neighbors
-            # if mouse and rect.collidepoint(mouse):
-            #     handwriting[i][j] = 250 / 255
-            #     if i + 1 < ROWS:
-            #         handwriting[i + 1][j] = 220 / 255
-            #     if j + 1 < COLS:
-            #         handwriting[i][j + 1] = 220 / 255
-            #     if i + 1 < ROWS and j + 1 < COLS:
-            #         handwriting[i + 1][j + 1] = 190 / 255
+
+def main(screen, width):
+    while True:
+
+        # Check if game quit
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+        # screen background
+        screen.fill(WHITE)
+
+        # Check for mouse press
+        click, _, _ = pygame.mouse.get_pressed()
+        if click == 1:
+            mouse = pygame.mouse.get_pos()
+        else:
+            mouse = None
+
+        # Draw each grid cell
+        cells = []
+        for i in range(ROWS):
+            row = []
+            for j in range(COLS):
+                rect = pygame.Rect(
+                    OFFSET + j * CELL_SIZE,
+                    OFFSET + i * CELL_SIZE,
+                    CELL_SIZE, CELL_SIZE
+                )
+
+                # If cell has been written on, darken cell
+                # if handwriting[i][j]:
+                #     channel = 255 - (handwriting[i][j] * 255)
+                #     pygame.draw.rect(screen, (channel, channel, channel), rect)
+
+                # Draw blank cell
+                #else:
+                # this draws the cell rectangles
+
+                channel = (0, 255, 0)
+                pygame.draw.rect(screen, channel, rect)
+
+                # this draws the gaps between cell rectangles
+                pygame.draw.rect(screen, BLACK, rect, 1)
 
 
+                # If writing on this cell, fill in current cell and neighbors
+                if mouse and rect.collidepoint(mouse):
+                    print(mouse)
 
-    pygame.display.flip()
+        pygame.display.flip()
+
+main(SCREEN, WIDTH)
