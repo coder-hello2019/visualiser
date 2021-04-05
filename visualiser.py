@@ -1,76 +1,98 @@
-import numpy as np
 import pygame
 import sys
-import tensorflow as tf
 import time
 
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
-# Start pygame
+WIDTH = 635
+
+# Start pygame and create initial window
 pygame.init()
-size = width, height = 600, 400
-screen = pygame.display.set_mode(size)
+size = width, height = WIDTH, WIDTH
+SCREEN = pygame.display.set_mode(size)
 
-
-ROWS, COLS = 28, 28
+ROWS, COLS = 15, 15
 
 OFFSET = 20
-CELL_SIZE = 10
+CELL_SIZE = 40
 
-handwriting = [[0] * COLS for _ in range(ROWS)]
-classification = None
+class Node:
+    def __init__(self, row, col, cell_size):
+        self.col = col
+        self.row = row
+        self.x = OFFSET + row * cell_size
+        self.y = OFFSET + col * cell_size
+        self.colour = WHITE
+        self.neighbors = []
 
-while True:
+    def draw(self, screen):
+        rect = pygame.Rect(self.x, self.y, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(screen, self.colour, rect)
+        return rect
 
-    # Check if game quit
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-
-    screen.fill(BLACK)
-
-    # Check for mouse press
-    # click, _, _ = pygame.mouse.get_pressed()
-    # if click == 1:
-    #     mouse = pygame.mouse.get_pos()
-    # else:
-    #     mouse = None
-
-    # Draw each grid cell
-    cells = []
+# generate board elements for board of specified size
+def createBoard():
+    # list of lists to hold each row full of nodes
+    nodes = []
     for i in range(ROWS):
         row = []
         for j in range(COLS):
-            rect = pygame.Rect(
-                OFFSET + j * CELL_SIZE,
-                OFFSET + i * CELL_SIZE,
-                CELL_SIZE, CELL_SIZE
-            )
+            node = Node(row=i, col = j, cell_size = CELL_SIZE)
+            row.append(node)
+        nodes.append(row)
+    return nodes
 
-            # If cell has been written on, darken cell
-            # if handwriting[i][j]:
-            #     channel = 255 - (handwriting[i][j] * 255)
-            #     pygame.draw.rect(screen, (channel, channel, channel), rect)
-
-            # Draw blank cell
-            #else:
-            # this draws the cell rectangles
-            pygame.draw.rect(screen, WHITE, rect)
-            # this draws the gaps between cell rectangles
+# graphically show the board i.e. draw all the board's rectangles
+def drawBoard(boardToDraw, screen):
+    for row in boardToDraw:
+        for node in row:
+            rect = node.draw(screen)
+            # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
 
-            # If writing on this cell, fill in current cell and neighbors
-            # if mouse and rect.collidepoint(mouse):
-            #     handwriting[i][j] = 250 / 255
-            #     if i + 1 < ROWS:
-            #         handwriting[i + 1][j] = 220 / 255
-            #     if j + 1 < COLS:
-            #         handwriting[i][j + 1] = 220 / 255
-            #     if i + 1 < ROWS and j + 1 < COLS:
-            #         handwriting[i + 1][j + 1] = 190 / 255
+# find row and column based on mouse position
+def findClickedSquare(mousePosition):
+    gap = (WIDTH - OFFSET) // COLS
+    # N.B. technically x and y should be the reverse here but doing it like this for more natural orientation
+    x_pos = (mousePosition[0] - OFFSET) // gap
+    y_pos = (mousePosition[1] - OFFSET) // gap
+
+    return (x_pos, y_pos)
 
 
+def main(screen, width):
+    while True:
 
-    pygame.display.flip()
+        # Check if game quit
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+        # screen background
+        screen.fill(WHITE)
+
+        # Check for mouse press
+        click, _, _ = pygame.mouse.get_pressed()
+        if click == 1:
+            mouse = pygame.mouse.get_pos()
+        else:
+            mouse = None
+
+        # create the board
+        board = createBoard()
+        # draw the created board
+        drawBoard(board, SCREEN)
+
+        # check where the board has been pressed
+        if mouse:
+            clicked_x, clicked_y = findClickedSquare(mouse)
+            clickedNode = board[clicked_x][clicked_y]
+            clickedNode.colour = (0, 255, 0)
+            clickedNode.draw(SCREEN)
+
+
+        pygame.display.flip()
+
+main(SCREEN, WIDTH)
