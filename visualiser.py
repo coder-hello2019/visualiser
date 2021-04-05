@@ -18,6 +18,28 @@ ROWS, COLS = 15, 15
 OFFSET = 20
 CELL_SIZE = 40
 
+# frontier code borrowed from CS50 AI coursework
+class StackFrontier():
+    def __init__(self):
+        self.frontier = []
+
+    def add(self, node):
+        self.frontier.append(node)
+
+    # def contains_state(self, state):
+    #     return any(node.state == state for node in self.frontier)
+
+    def empty(self):
+        return len(self.frontier) == 0
+
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            node = self.frontier[-1]
+            self.frontier = self.frontier[:-1]
+            return node
+
 class Node:
     def __init__(self, row, col, cell_size):
         self.col = col
@@ -25,12 +47,39 @@ class Node:
         self.x = OFFSET + row * cell_size
         self.y = OFFSET + col * cell_size
         self.colour = WHITE
-        self.neighbors = []
+        self.neighbours = []
+        #self.actualNeighbours = list(set(self.neighbours))
 
     def draw(self, screen):
         rect = pygame.Rect(self.x, self.y, CELL_SIZE, CELL_SIZE)
         pygame.draw.rect(screen, self.colour, rect)
         return rect
+
+    def isWall(self):
+        return self.colour == BLACK
+
+    def isStart(self):
+        return self.colour == (0, 255, 0)
+
+    def isEnd(self):
+        return self.colour == (0, 0, 255)
+
+    def getNeighbours(self, board):
+        row = self.row
+        col = self.col
+
+        # get right neigh.
+        if self.col <= COLS - 2 and not board[row][col + 1].isWall():
+            self.neighbours.append(board[row][col + 1])
+        # get left neigh.
+        if self.col >= 1 and not board[row][col - 1].isWall():
+            self.neighbours.append(board[row][col - 1])
+        # get up neigh.
+        if self.row >= 1 and not board[row - 1][col].isWall():
+            self.neighbours.append(board[row - 1][col])
+        # get down neigh.
+        if self.row <= ROWS - 2 and not board[row + 1][col].isWall():
+             self.neighbours.append(board[row + 1][col])
 
 # generate board elements for board of specified size
 def createBoard():
@@ -46,6 +95,7 @@ def createBoard():
 
 # graphically show the board i.e. draw all the board's rectangles
 def drawBoard(boardToDraw, screen):
+    screen.fill(WHITE)
     for row in boardToDraw:
         for node in row:
             rect = node.draw(screen)
@@ -61,37 +111,76 @@ def findClickedSquare(mousePosition):
 
     return (x_pos, y_pos)
 
+def algorithm(board, start, end):
 
-def main(screen, width):
-    while True:
+    frontier = StackFrontier()
+    frontier.add(start)
+    explored = set()
 
-        # Check if game quit
+    while not frontier.empty():
+        # a pygame failsafe for quitting
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
 
-        # screen background
-        screen.fill(WHITE)
-
-        # Check for mouse press
-        click, _, _ = pygame.mouse.get_pressed()
-        if click == 1:
-            mouse = pygame.mouse.get_pos()
+        current = frontier.remove()
+        explored.add(current)
+        current.colour = (255, 165, 0)
+        if current.row == end.row and current.col == end.col:
+            return explored
         else:
-            mouse = None
+            # generate neighbours of current node
+            current.getNeighbours(board)
 
-        # create the board
-        board = createBoard()
-        # draw the created board
+            for neighbour in current.neighbours:
+                if neighbour not in explored:
+                    frontier.add(neighbour)
         drawBoard(board, SCREEN)
 
-        # check where the board has been pressed
-        if mouse:
-            clicked_x, clicked_y = findClickedSquare(mouse)
-            clickedNode = board[clicked_x][clicked_y]
-            clickedNode.colour = (0, 255, 0)
-            clickedNode.draw(SCREEN)
+    # return False if no more neighbours to consider and we haven't returned a path yet
+    return False
 
+
+def main(screen, width):
+    # create the board
+    board = createBoard()
+    startNode = None
+    endNode = None
+
+    while True:
+        # draw the created board
+        drawBoard(board, SCREEN)
+        # Check if game quit
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            # left button mouse click
+            if pygame.mouse.get_pressed()[0]:
+                mouse = pygame.mouse.get_pos()
+                clicked_x, clicked_y = findClickedSquare(mouse)
+                clickedNode = board[clicked_x][clicked_y]
+                # if no startNode yet, make the first node clicked the start node
+                if startNode == None and clickedNode != endNode:
+                    startNode = clickedNode
+                    startNode.colour = (0, 255, 0)
+                elif endNode == None and clickedNode != startNode:
+                    endNode = clickedNode
+                    clickedNode.colour = (0, 0, 255)
+                elif startNode and endNode and clickedNode != startNode and clickedNode != endNode:
+                    clickedNode.colour = BLACK
+                    #clickedNode.getNeighbours(board)
+
+                clickedNode.draw(SCREEN)
+
+            # keyboard press
+            if event.type == pygame.KEYDOWN:
+                print("Finding path...")
+                algo = algorithm(board, startNode, endNode)
+                if algo == False:
+                    print("Something went wrong")
+                else:
+                    for node in algo:
+                        pass
 
         pygame.display.flip()
 
