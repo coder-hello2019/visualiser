@@ -1,6 +1,7 @@
 import pygame
 import sys
 import time
+from algorithms import *
 
 # Colors
 BLACK = (0, 0, 0)
@@ -26,8 +27,8 @@ class StackFrontier():
     def add(self, node):
         self.frontier.append(node)
 
-    # def contains_state(self, state):
-    #     return any(node.state == state for node in self.frontier)
+    def contains_state(self, state):
+        return state in self.frontier
 
     def empty(self):
         return len(self.frontier) == 0
@@ -48,6 +49,7 @@ class Node:
         self.y = OFFSET + col * cell_size
         self.colour = WHITE
         self.neighbours = []
+        self.parent = None
         #self.actualNeighbours = list(set(self.neighbours))
 
     def draw(self, screen):
@@ -81,6 +83,16 @@ class Node:
         if self.row <= ROWS - 2 and not board[row + 1][col].isWall():
              self.neighbours.append(board[row + 1][col])
 
+class QueueFrontier(StackFrontier):
+
+    def remove(self):
+        if self.empty():
+            raise Exception("empty frontier")
+        else:
+            node = self.frontier[0]
+            self.frontier = self.frontier[1:]
+            return node
+
 # generate board elements for board of specified size
 def createBoard():
     # list of lists to hold each row full of nodes
@@ -102,7 +114,7 @@ def drawBoard(boardToDraw, screen):
             # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
     # DELETE THIS LINE IF IT BREAKS STUFF
-    pygame.time.wait(75)
+    pygame.time.wait(50)
     pygame.display.update()
 
 # find row and column based on mouse position
@@ -114,7 +126,20 @@ def findClickedSquare(mousePosition):
 
     return (x_pos, y_pos)
 
-def algorithm(board, start, end):
+def visualisePath(board, current):
+    nodesToVisualise = []
+    while current.parent != None:
+        nodesToVisualise.append(current)
+        current = current.parent
+
+    nodesToVisualise.reverse()
+
+    for node in nodesToVisualise:
+        node.colour = (255, 255, 0)
+        drawBoard(board, SCREEN)
+
+
+def DFS(board, start, end):
 
     frontier = StackFrontier()
     frontier.add(start)
@@ -130,7 +155,8 @@ def algorithm(board, start, end):
         explored.add(current)
         current.colour = (255, 165, 0)
         if current.row == end.row and current.col == end.col:
-            return explored
+            visualisePath(board = board, current = current)
+            return True
         else:
             # generate neighbours of current node
             current.getNeighbours(board)
@@ -138,6 +164,39 @@ def algorithm(board, start, end):
             for neighbour in current.neighbours:
                 if neighbour not in explored:
                     frontier.add(neighbour)
+                    neighbour.parent = current
+        drawBoard(board, SCREEN)
+
+    # return False if no more neighbours to consider and we haven't returned a path yet
+    return False
+
+def BFS(board, start, end):
+
+    frontier = QueueFrontier()
+    frontier.add(start)
+    explored = set()
+
+    while not frontier.empty():
+        # a pygame failsafe for quitting
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+        current = frontier.remove()
+        print(current.row, current.col)
+        explored.add(current)
+        current.colour = (255, 165, 0)
+        if current.row == end.row and current.col == end.col:
+            visualisePath(board = board, current = current)
+            return True
+        else:
+            # generate neighbours of current node
+            current.getNeighbours(board)
+
+            for neighbour in current.neighbours:
+                if neighbour not in explored and not frontier.contains_state(neighbour):
+                    frontier.add(neighbour)
+                    neighbour.parent = current
         drawBoard(board, SCREEN)
 
     # return False if no more neighbours to consider and we haven't returned a path yet
@@ -178,13 +237,11 @@ def main(screen, width):
             # keyboard press
             if event.type == pygame.KEYDOWN:
                 print("Finding path...")
-                algo = algorithm(board, startNode, endNode)
+                algo = BFS(board, startNode, endNode)
                 if algo == False:
                     print("Something went wrong")
                 else:
-                    for node in algo:
-                        pass
-
+                    print(algo)
         pygame.display.flip()
 
 main(SCREEN, WIDTH)
