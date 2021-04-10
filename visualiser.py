@@ -7,7 +7,9 @@ from algorithms import *
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
+# width of the ROWS x COLLS are containing the node squares
 WIDTH = 635
+# width of the entire window, including buttons
 WIDTH_FOR_BUTTONS = 800
 
 # Start pygame and create initial window
@@ -19,6 +21,9 @@ ROWS, COLS = 15, 15
 
 OFFSET = 20
 CELL_SIZE = 40
+
+# the x coordinate of algo selection buttons
+COORD = OFFSET + (COLS * CELL_SIZE) + COLS + 20
 
 # frontier code borrowed from CS50 AI coursework
 class StackFrontier():
@@ -116,12 +121,16 @@ def drawBoard(boardToDraw, screen):
             # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
 
-    coord = OFFSET + (COLS * CELL_SIZE) + COLS + 20
-    # draw button on board
-    button = pygame.Rect(coord, OFFSET, 120, 60)
-    pygame.draw.rect(screen, (211, 211, 211), button)
 
-    # DELETE THIS LINE IF IT BREAKS STUFF
+    # draw DFS button on board
+    DFSbutton = pygame.Rect(COORD, OFFSET, 120, 60)
+    pygame.draw.rect(screen, (211, 211, 211), DFSbutton)
+
+    # draw BFS button on board
+    BFSButton = pygame.Rect(COORD, (OFFSET + 60 + 20), 120, 60)
+    pygame.draw.rect(screen, (200, 200, 200), BFSButton)
+
+    # change 'animation' time
     pygame.time.wait(50)
     pygame.display.update()
 
@@ -135,6 +144,7 @@ def findClickedSquare(mousePosition):
     return (x_pos, y_pos)
 
 def visualisePath(board, current):
+    originalCurrent = current
     nodesToVisualise = []
     while current.parent != None:
         nodesToVisualise.append(current)
@@ -143,7 +153,8 @@ def visualisePath(board, current):
     nodesToVisualise.reverse()
 
     for node in nodesToVisualise:
-        node.colour = (255, 255, 0)
+        if node != originalCurrent:
+            node.colour = (255, 255, 0)
         drawBoard(board, SCREEN)
 
 def DFS(board, start, end):
@@ -160,7 +171,8 @@ def DFS(board, start, end):
 
         current = frontier.remove()
         explored.add(current)
-        current.colour = (255, 165, 0)
+        if current != start and current != end:
+            current.colour = (255, 165, 0)
         if current.row == end.row and current.col == end.col:
             visualisePath(board = board, current = current)
             return True
@@ -190,9 +202,9 @@ def BFS(board, start, end):
                 sys.exit()
 
         current = frontier.remove()
-        print(current.row, current.col)
         explored.add(current)
-        current.colour = (255, 165, 0)
+        if current != start and current != end:
+            current.colour = (255, 165, 0)
         if current.row == end.row and current.col == end.col:
             visualisePath(board = board, current = current)
             return True
@@ -209,12 +221,21 @@ def BFS(board, start, end):
     # return False if no more neighbours to consider and we haven't returned a path yet
     return False
 
+def identifyClickedButton(board, mousePosition):
+    # all algo selection buttons will have the same x coordinate, hence the catch-all outside if condition
+    if (mousePosition[0] > WIDTH + OFFSET) and (mousePosition[0] <WIDTH + OFFSET + 120):
+        if mousePosition[1] > OFFSET and mousePosition[1] < OFFSET + 60:
+            return "DFS"
+        elif mousePosition[1] > (OFFSET + 60 + 20) and mousePosition[1] < (OFFSET + 60 + 20 + 60):
+            return "BFS"
 
 def main(screen, width):
     # create the board
     board = createBoard()
     startNode = None
     endNode = None
+
+    buttonClicked = None
 
     while True:
         # draw the created board
@@ -226,29 +247,38 @@ def main(screen, width):
             # left button mouse click
             if pygame.mouse.get_pressed()[0]:
                 mouse = pygame.mouse.get_pos()
-                clicked_x, clicked_y = findClickedSquare(mouse)
-                clickedNode = board[clicked_x][clicked_y]
+
+                # error checking - ensure that click within the bounds of the node board
+                if mouse[0] > WIDTH or mouse[1] > WIDTH:
+                    # do nothing if we don't have the start and end notes yet
+                    if startNode == None or endNode == None:
+                        break
+                    else:
+                        buttonClicked = identifyClickedButton(board, mouse)
+                else:
+                    clicked_x, clicked_y = findClickedSquare(mouse)
+                    clickedNode = board[clicked_x][clicked_y]
                 # if no startNode yet, make the first node clicked the start node
                 if startNode == None and clickedNode != endNode:
                     startNode = clickedNode
                     startNode.colour = (0, 255, 0)
+                # if we have a startNode but not an endNode, make the clicked node the endNode
                 elif endNode == None and clickedNode != startNode:
                     endNode = clickedNode
                     clickedNode.colour = (0, 0, 255)
+                # make the clicked node a wall node if we already have both the start and end
                 elif startNode and endNode and clickedNode != startNode and clickedNode != endNode:
                     clickedNode.colour = BLACK
-                    #clickedNode.getNeighbours(board)
 
                 clickedNode.draw(SCREEN)
 
-            # keyboard press
-            if event.type == pygame.KEYDOWN:
-                print("Finding path...")
-                algo = DFS(board, startNode, endNode)
-                if algo == False:
-                    print("Something went wrong")
-                else:
-                    print(algo)
+                # call DFS if DFS button pressed
+                if buttonClicked and buttonClicked == "DFS":
+                    DFS(board, startNode, endNode)
+                # call BFS if BFS button pressed
+                elif buttonClicked and buttonClicked == "BFS":
+                    BFS(board, startNode, endNode)
+
         pygame.display.flip()
 
 main(SCREEN, WIDTH)
