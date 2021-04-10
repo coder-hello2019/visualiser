@@ -101,6 +101,9 @@ def drawBoard(boardToDraw, screen):
             rect = node.draw(screen)
             # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
+    # DELETE THIS LINE IF IT BREAKS STUFF
+    pygame.time.wait(75)
+    pygame.display.update()
 
 # find row and column based on mouse position
 def findClickedSquare(mousePosition):
