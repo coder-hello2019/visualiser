@@ -8,10 +8,11 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 WIDTH = 635
+WIDTH_FOR_BUTTONS = 800
 
 # Start pygame and create initial window
 pygame.init()
-size = width, height = WIDTH, WIDTH
+size = width, height = WIDTH_FOR_BUTTONS, WIDTH_FOR_BUTTONS
 SCREEN = pygame.display.set_mode(size)
 
 ROWS, COLS = 15, 15
@@ -108,11 +109,18 @@ def createBoard():
 # graphically show the board i.e. draw all the board's rectangles
 def drawBoard(boardToDraw, screen):
     screen.fill(WHITE)
+    # draw node squares on the board
     for row in boardToDraw:
         for node in row:
             rect = node.draw(screen)
             # draw gaps between nodes
             pygame.draw.rect(screen, BLACK, rect, 1)
+
+    coord = OFFSET + (COLS * CELL_SIZE) + COLS + 20
+    # draw button on board
+    button = pygame.Rect(coord, OFFSET, 120, 60)
+    pygame.draw.rect(screen, (211, 211, 211), button)
+
     # DELETE THIS LINE IF IT BREAKS STUFF
     pygame.time.wait(50)
     pygame.display.update()
@@ -137,7 +145,6 @@ def visualisePath(board, current):
     for node in nodesToVisualise:
         node.colour = (255, 255, 0)
         drawBoard(board, SCREEN)
-
 
 def DFS(board, start, end):
 
@@ -237,7 +244,7 @@ def main(screen, width):
             # keyboard press
             if event.type == pygame.KEYDOWN:
                 print("Finding path...")
-                algo = BFS(board, startNode, endNode)
+                algo = DFS(board, startNode, endNode)
                 if algo == False:
                     print("Something went wrong")
                 else:
